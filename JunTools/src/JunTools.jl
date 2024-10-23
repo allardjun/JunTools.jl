@@ -44,7 +44,7 @@ function get_plot_path(project_name::String; date=nothing)
         date = Dates.format(now(), "yymmdd")
     end
 
-    data_path = joinpath(get_base_path(), project_name, "plots", date)
+    data_path = joinpath(get_base_path(project_name), "plots", date)
     if !isdir(data_path)
         mkdir(data_path)
     end
@@ -56,7 +56,7 @@ function get_data_path(project_name::String; date=nothing)
         date = Dates.format(now(), "yymmdd")
     end
 
-    data_path = joinpath(get_base_path(), project_name, "data", date)
+    data_path = joinpath(get_base_path(project_name), "data", date)
     if !isdir(data_path)
         mkdir(data_path)
     end
