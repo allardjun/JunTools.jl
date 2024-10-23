@@ -39,7 +39,7 @@ function get_base_path(project_name::String)
     return joinpath(base_path, project_name)
 end
 
-function get_plot_path(project_name::String; date=nothing::String)
+function get_plot_path(project_name::String; date=nothing)
     if isnothing(date)
         date = Dates.format(now(), "yymmdd")
     end
@@ -51,7 +51,7 @@ function get_plot_path(project_name::String; date=nothing::String)
     return data_path
 end
 
-function get_data_path(project_name::String; date=nothing::String)
+function get_data_path(project_name::String; date=nothing)
     if isnothing(date)
         date = Dates.format(now(), "yymmdd")
     end
