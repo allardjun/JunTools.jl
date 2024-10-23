@@ -7,6 +7,8 @@ export meshgrid, displog
 using Dates
 using Colors
 
+
+
 greet() = print("Hello from JunTools!")
 
 os_name = Sys.KERNEL
@@ -14,6 +16,8 @@ if os_name == :Linux
     lsb = readchomp(pipeline(`lsb_release -ds`; stderr=devnull))
     ENV["GKSwstype"] = "100"
 end
+
+global base_path = ""
 
 function get_base_path(project_name::String)
     directories = [
@@ -24,7 +28,7 @@ function get_base_path(project_name::String)
         ".", # if none of the above are found, default to the current directory
     ]
 
-    base_path = ""
+    global base_path = ""
 
     # Loop through the directory names
     for dir in directories
