@@ -1,6 +1,8 @@
 module JunTools
 
-export greet, get_base_path, plot_path, data_path, colors, meshgrid, displog
+#export greet, get_base_path, plot_path, data_path, colors, meshgrid, displog
+
+export meshgrid, displog
 
 using Dates
 using Colors
@@ -9,16 +11,11 @@ greet() = print("Hello from JunTools!")
 
 os_name = Sys.KERNEL
 if os_name == :Linux
-    lsb = readchomp(pipeline(`lsb_release -ds`, stderr=devnull))
+    lsb = readchomp(pipeline(`lsb_release -ds`; stderr=devnull))
     ENV["GKSwstype"] = "100"
 end
 
-global base_path = ""
-
-function get_base_path()
-
-
-
+function get_base_path(project_name::String)
     directories = [
         "/Volumes/Carrot/Dropbox/science/projects/", # ricotta
         "/Users/jun/Dropbox/science/projects/", # nagaimo
@@ -27,6 +24,7 @@ function get_base_path()
         ".", # if none of the above are found, default to the current directory
     ]
 
+    base_path = ""
 
     # Loop through the directory names
     for dir in directories
@@ -38,33 +36,32 @@ function get_base_path()
             break
         end
     end
-    return base_path
+    return joinpath(base_path, project_name)
 end
 
-function plot_path(project_name::String)
-
-    today_date = Dates.format(now(), "yymmdd")
-
-    plot_path = joinpath(get_base_path(), project_name, "plots", today_date)
-    if !isdir(plot_path)
-        mkdir(plot_path)
-    end
-    return plot_path
-end
-
-function data_path(project_name::String; today_date=nothing)
-
-    if isnothing(today_date)
-        today_date = Dates.format(now(), "yymmdd")
+function get_plot_path(project_name::String; date=nothing::String)
+    if isnothing(date)
+        date = Dates.format(now(), "yymmdd")
     end
 
-    data_path = joinpath(get_base_path(), project_name, "data", today_date)
+    data_path = joinpath(get_base_path(), project_name, "plots", date)
     if !isdir(data_path)
         mkdir(data_path)
     end
     return data_path
 end
 
+function get_data_path(project_name::String; date=nothing::String)
+    if isnothing(date)
+        date = Dates.format(now(), "yymmdd")
+    end
+
+    data_path = joinpath(get_base_path(), project_name, "data", date)
+    if !isdir(data_path)
+        mkdir(data_path)
+    end
+    return data_path
+end
 
 colors = [Colors.RGB(0.6, 0.8 - i * 0.1, 1.0) for i in 0:7]
 
@@ -86,6 +83,5 @@ function displog(content; logfile=nothing)
         end
     end
 end
-
 
 end # module JunTools
