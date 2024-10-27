@@ -1,13 +1,16 @@
 module JunTools
 
-#export greet, get_base_path, plot_path, data_path, colors, meshgrid, displog
+"""
+Design principles:
+* export as little as possible, so that the user is aware that the function is coming from JunTools.
+
+"""
 
 export meshgrid, displog
 
 using Dates
 using Colors
-
-
+using JLD2
 
 greet() = print("Hello from JunTools!")
 
@@ -87,5 +90,58 @@ function displog(content; logfile=nothing)
         end
     end
 end
+
+# #######
+
+"""
+    save_with_increment(data, prefix::String; start_num::Int=1) -> String
+
+Save data to a JLD2 file with an auto-incrementing suffix.
+Returns the filename that was actually used.
+
+Example:
+    # If "data.jld2" exists, saves to "data_1.jld2"
+    filename = save_with_increment(mydata, "data")
+"""
+function save_plusplus(prefix::String, data; start_num::Int=1)
+    base_filename = prefix * ".jld2"
+    
+    # If base filename doesn't exist, use it
+    if !isfile(base_filename)
+        @save base_filename data
+        return base_filename
+    end
+    
+    # Try incrementing numbers until we find an unused filename
+    counter = start_num
+    while true
+        filename = "$(prefix)_$(counter).jld2"
+        if !isfile(filename)
+            @save filename data
+            return filename
+        end
+        counter += 1
+    end
+end
+
+"""
+    save_with_timestamp(data, prefix::String) -> String
+
+Save data to a JLD2 file with a timestamp suffix.
+Returns the filename that was actually used.
+
+Example:
+    # Saves to something like "data_2024-10-27_1435.jld2"
+    filename = save_with_timestamp(mydata, "data")
+"""
+function save_with_timestamp(prefix::String, data)
+    # Format: YYYY-MM-DD_HHMM
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HHMM")
+    filename = "$(prefix)_$(timestamp).jld2"
+    
+    @save filename data
+    return filename
+end
+
 
 end # module JunTools
