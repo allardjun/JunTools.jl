@@ -50,7 +50,7 @@ function get_plot_path(project_name::String; date=nothing)
 
     data_path = joinpath(get_base_path(project_name), "plots", date)
     if !isdir(data_path)
-        mkdir(data_path)
+        mkpath(data_path)
     end
     return data_path
 end
@@ -62,7 +62,7 @@ function get_data_path(project_name::String; date=nothing)
 
     data_path = joinpath(get_base_path(project_name), "data", date)
     if !isdir(data_path)
-        mkdir(data_path)
+        mkpath(data_path)
     end
     return data_path
 end
