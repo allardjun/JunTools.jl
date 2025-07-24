@@ -25,8 +25,8 @@ global base_path = ""
 
 function get_base_path(project_name::String)
     directories = [
-        "/Volumes/Carrot/Dropbox/science/projects/", # ricotta
         "/Users/jun/Dropbox/science/projects/", # nagaimo
+        "/Volumes/Carrot/Dropbox/science/projects/", # ricotta
         "/home/ubuntu/science/projects/", # aws
         "/pub/jallard/science/projects/", # hpc3
         ".", # if none of the above are found, default to the current directory
