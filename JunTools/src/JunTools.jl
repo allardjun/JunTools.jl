@@ -150,13 +150,19 @@ end
 # ================================================================
 
 """
-Convert centimeters to points for Makie figure sizing.
-Uses the standard conversion: 1 cm = 72/2.54 points.
+Convert centimeters to the correct units for Makie figure sizing.
+CairoMakie appears to treat figure size as pixels at 72 DPI, where 1 inch = 72 pixels.
 
 Example:
     fig = Makie.Figure(size = (JunTools.cm_to_pt(8.5), JunTools.cm_to_pt(6.0)))
 """
-cm_to_pt(cm) = cm * 72 / 2.54
+function cm_to_pt(cm)
+    # CairoMakie figure size is in pixels at 72 DPI
+    # 1 cm = 1/2.54 inch = 72/2.54 pixels ≈ 28.35 pixels
+    result = cm * 72 / 2.54
+    @debug "cm_to_pt: $(cm) cm = $(result) pixels (at 72 DPI)"
+    return result
+end
 
 """
     publication_theme(; kwargs...) -> Makie.Theme
@@ -252,54 +258,89 @@ function set_publication_theme!(; kwargs...)
 end
 
 """
-    publication_figure(; size_cm = nothing, kwargs...)
+    publication_figure(; size_cm = nothing, journal = :cell, kwargs...)
 
-Create a Makie.Figure with publication theme applied locally (doesn't affect global theme).
+Create a Makie.Figure with explicit publication sizing (theme sizing doesn't work reliably).
 
 # Arguments
 - `size_cm::Tuple = nothing`: Override size as (width_cm, height_cm)
+- `journal::Symbol = :cell`: Journal preset for default sizing (:cell, :nature, :pnas)
 - `kwargs...`: Passed to Makie.Figure()
 
 # Example
     fig = JunTools.publication_figure(size_cm = (17.8, 8.0))  # Double column
+    fig = JunTools.publication_figure(journal = :nature)      # Nature single column
 """
-function publication_figure(; size_cm = nothing, kwargs...)
+function publication_figure(; size_cm = nothing, journal = :cell, kwargs...)
     if !isnothing(size_cm)
+        # Use explicit size override
         size_pts = (cm_to_pt(size_cm[1]), cm_to_pt(size_cm[2]))
         return Makie.Figure(size = size_pts; kwargs...)
     else
-        # Use current theme default
-        return Makie.Figure(; kwargs...)
+        # Use journal default size (explicit, not theme-based)
+        journal_size = journal_sizes(journal)
+        size_pts = (cm_to_pt(journal_size.single), cm_to_pt(6.0))  # Default height
+        return Makie.Figure(size = size_pts; kwargs...)
     end
 end
 
 """
-    save_publication_figure(filename, fig, project_name; pt_per_unit=1, kwargs...)
+    save_publication_figure(filename_or_path, fig, plot_path=nothing; pt_per_unit=1, kwargs...)
 
-Save figure to the project's plot directory with consistent settings for publication.
+Save figure with consistent publication settings. Supports two usage patterns:
+
+# Pattern 1: Full path (backward compatible)
+    save_publication_figure("/path/to/plots/figure1.pdf", fig)
+
+# Pattern 2: Filename + directory (recommended)
+    save_publication_figure("figure1", fig, plot_path)
 
 # Arguments
-- `filename::String`: Base filename (without extension)
+- `filename_or_path::String`: Either full path OR base filename (without extension)
 - `fig`: Makie figure object
-- `project_name::String`: Project name for path resolution
-- `pt_per_unit::Int = 1`: Ensure proper PDF scaling
+- `plot_path::String = nothing`: Directory path (if not provided, first arg is treated as full path)
+- `pt_per_unit::Real = 1`: Ensure proper PDF scaling
+- `format::String = "pdf"`: File format (only used with Pattern 2)
 - `kwargs...`: Additional arguments passed to Makie.save()
 
-# Example
-    fig = Makie.Figure()
-    # ... create plot ...
-    JunTools.save_publication_figure("figure1", fig, "TCRPulsing")
-    # Saves to: plots/YYMMDD/figure1.pdf
+# Returns
+- `String`: Full path to saved file
+
+# Examples
+    # Pattern 1: Full path
+    save_publication_figure("/plots/240724/result.pdf", fig)
+    
+    # Pattern 2: Recommended
+    plot_path = JunTools.get_plot_path("TCRPulsing")
+    save_publication_figure("result", fig, plot_path)
 """
-function save_publication_figure(filename::String, fig, project_name::String; 
-                                pt_per_unit::Int = 1, 
+function save_publication_figure(filename_or_path::String, fig, plot_path::Union{String,Nothing}=nothing; 
+                                pt_per_unit::Real = 1,
                                 format::String = "pdf",
                                 kwargs...)
     
-    plot_path = get_plot_path(project_name)
-    full_filename = joinpath(plot_path, "$(filename).$(format)")
+    if isnothing(plot_path)
+        # Pattern 1: First argument is full path (backward compatible)
+        full_filename = filename_or_path
+        # Ensure directory exists
+        dir = dirname(full_filename)
+        if !isdir(dir) && dir != ""
+            mkpath(dir)
+        end
+    else
+        # Pattern 2: First argument is filename, second is directory
+        # Ensure plot directory exists
+        if !isdir(plot_path)
+            mkpath(plot_path)
+        end
+        full_filename = joinpath(plot_path, "$(filename_or_path).$(format)")
+    end
     
-    if format == "pdf"
+    @debug "Saving figure to: $(full_filename) with pt_per_unit = $(pt_per_unit)"
+    
+    # Determine if we should use pt_per_unit based on file extension
+    ext = lowercase(splitext(full_filename)[2])
+    if ext == ".pdf"
         Makie.save(full_filename, fig; pt_per_unit = pt_per_unit, kwargs...)
     else
         Makie.save(full_filename, fig; kwargs...)
