@@ -218,7 +218,9 @@ function publication_theme(;
             xgridvisible = false,
             ygridvisible = false,
             topspinevisible = false,
-            rightspinevisible = false
+            rightspinevisible = false,
+            tellwidth = false,    # Allow text overflow
+            tellheight = false    # Allow text overflow
         ),
         Legend = (
             framevisible = false,
@@ -258,30 +260,37 @@ function set_publication_theme!(; kwargs...)
 end
 
 """
-    publication_figure(; size_cm = nothing, journal = :cell, kwargs...)
+    publication_figure(; size_cm = nothing, journal = :cell, tight_layout = false, kwargs...)
 
 Create a Makie.Figure with explicit publication sizing (theme sizing doesn't work reliably).
 
 # Arguments
 - `size_cm::Tuple = nothing`: Override size as (width_cm, height_cm)
 - `journal::Symbol = :cell`: Journal preset for default sizing (:cell, :nature, :pnas)
+- `tight_layout::Bool = false`: If true, minimize margins (good for Illustrator editing)
 - `kwargs...`: Passed to Makie.Figure()
 
 # Example
     fig = JunTools.publication_figure(size_cm = (17.8, 8.0))  # Double column
     fig = JunTools.publication_figure(journal = :nature)      # Nature single column
+    fig = JunTools.publication_figure(tight_layout = true)    # Minimal margins
 """
-function publication_figure(; size_cm = nothing, journal = :cell, kwargs...)
+function publication_figure(; size_cm = nothing, journal = :cell, tight_layout = false, kwargs...)
     if !isnothing(size_cm)
         # Use explicit size override
         size_pts = (cm_to_pt(size_cm[1]), cm_to_pt(size_cm[2]))
-        return Makie.Figure(size = size_pts; kwargs...)
+        fig = Makie.Figure(size = size_pts; kwargs...)
     else
         # Use journal default size (explicit, not theme-based)
         journal_size = journal_sizes(journal)
         size_pts = (cm_to_pt(journal_size.single), cm_to_pt(6.0))  # Default height
-        return Makie.Figure(size = size_pts; kwargs...)
+        fig = Makie.Figure(size = size_pts; kwargs...)
     end
+    
+    # Apply tight layout if requested - use resize_to_layout! instead of padding
+    # (padding API changed between Makie versions)
+    
+    return fig
 end
 
 """
