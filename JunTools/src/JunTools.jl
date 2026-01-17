@@ -17,7 +17,7 @@ greet() = print("Hello from JunTools!")
 
 os_name = Sys.KERNEL
 if os_name == :Linux
-    lsb = readchomp(pipeline(`lsb_release -ds`; stderr=devnull))
+    # lsb = readchomp(pipeline(`lsb_release -ds`; stderr=devnull))
     ENV["GKSwstype"] = "100"
 end
 
