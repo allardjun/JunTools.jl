@@ -1,6 +1,6 @@
 using JunTools
 
-@show JunTools.greet()
+JunTools.greet()
 
 println()
 
