@@ -12,6 +12,7 @@ using Dates
 using Colors
 using JLD2
 using Makie
+using LibGit2
 
 greet() = print("Hello from JunTools!")
 
@@ -384,6 +385,106 @@ function journal_sizes(journal::Symbol = :cell)
         @warn "Unknown journal $journal, using Cell defaults"
         return (single = 8.5, double = 17.8)
     end
+end
+
+# ================================================================
+# Figure metadata stamping for provenance tracking
+# ================================================================
+
+"""
+    get_repo_commit_hash(; short=true, repo_path=pwd())
+
+Get the current git commit hash of the repository at `repo_path`.
+Returns "unknown" if not in a git repo.
+
+# Arguments
+- `short::Bool = true`: Return 8-character abbreviated hash
+- `repo_path::String = pwd()`: Path to search for git repo (searches upward)
+"""
+function get_repo_commit_hash(; short=true, repo_path=pwd())
+    try
+        repo = LibGit2.GitRepo(LibGit2.discover_repo(repo_path))
+        head = LibGit2.head_oid(repo)
+        hash = string(head)
+        close(repo)
+        return short ? hash[1:8] : hash
+    catch
+        return "unknown"
+    end
+end
+
+"""
+    stamp_figure!(fig::Makie.Figure; source="", script="", extras...)
+
+Add provenance metadata as tiny text at the bottom-right of a Makie Figure.
+The text is drawn directly on the scene, bypassing layout (no layout disruption).
+
+# Arguments
+- `fig`: The Makie Figure to stamp
+- `source`: Data source identifier (e.g., "cocoa2_task3b_job6")
+- `script`: Name of the generator script (use `@__FILE__`)
+- `extras...`: Any additional key=value pairs to include
+
+# Example
+```julia
+fig = Figure()
+# ... build your figure ...
+JunTools.stamp_figure!(fig; source="cocoa2_task3b_job6", script=@__FILE__)
+save("figure.pdf", fig)
+```
+"""
+function stamp_figure!(fig::Makie.Figure;
+                       source::String="",
+                       script::String="",
+                       extras...)
+    commit = get_repo_commit_hash()
+    timestamp = Dates.format(now(), "yymmdd-HHMM")
+
+    # Build metadata string
+    parts = String[]
+    push!(parts, commit)
+    if !isempty(source)
+        push!(parts, source)
+    end
+    if !isempty(script)
+        push!(parts, basename(script))
+    end
+    push!(parts, timestamp)
+    for (k, v) in extras
+        push!(parts, "$(k):$(v)")
+    end
+
+    metadata_str = join(parts, " | ")
+
+    # Draw directly on figure scene — bypasses layout, no layout disruption.
+    # Tiny orange text at bottom-right; move to pasteboard in Illustrator.
+    Makie.text!(fig.scene, metadata_str;
+          position=Makie.Point2f(0.99, 0.01),
+          space=:relative,
+          align=(:right, :bottom),
+          fontsize=3,
+          color=:orange)
+
+    return fig
+end
+
+"""
+    save_stamped_figure(filename, fig, plot_path; source="", script="", extras...)
+
+Stamp a figure with metadata and save it via `save_publication_figure`.
+
+# Example
+```julia
+JunTools.save_stamped_figure("figure_3B", fig, plot_path;
+    source="cocoa2_task3b_job6", script=@__FILE__)
+```
+"""
+function save_stamped_figure(filename::String, fig::Makie.Figure, plot_path;
+                             source::String="",
+                             script::String="",
+                             extras...)
+    stamp_figure!(fig; source=source, script=script, extras...)
+    return save_publication_figure(filename, fig, plot_path)
 end
 
 end # module JunTools
