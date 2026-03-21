@@ -24,26 +24,30 @@ end
 global base_path = ""
 
 function get_base_path(project_name::String)
-    directories = [
-        "/Users/jun/Dropbox/science/projects/", # nagaimo
-        "/Volumes/Carrot/Dropbox/science/projects/", # ricotta
-        "/home/ubuntu/science/projects/", # aws
-        "/pub/jallard/science/projects/", # hpc3
-        ".", # if none of the above are found, default to the current directory
-    ]
-
     global base_path = ""
 
-    # Loop through the directory names
-    for dir in directories
-        global base_path
-        if isdir(dir)
-            # If the directory exists, assign its name to the variable
-            base_path = dir
-            # Exit the loop
-            break
+    # Prefer PROJECTDIR environment variable if set and valid
+    projectdir = get(ENV, "PROJECTDIR", "")
+    if !isempty(projectdir) && isdir(projectdir)
+        base_path = projectdir
+    else
+        # Fallback to hardcoded machine-specific directories
+        directories = [
+            "/Users/jun/Dropbox/science/projects/", # nagaimo
+            "/Volumes/Carrot/Dropbox/science/projects/", # ricotta
+            "/home/ubuntu/science/projects/", # aws
+            "/pub/jallard/science/projects/", # hpc3
+            ".", # if none of the above are found, default to the current directory
+        ]
+
+        for dir in directories
+            if isdir(dir)
+                base_path = dir
+                break
+            end
         end
     end
+
     return joinpath(base_path, project_name)
 end
 
